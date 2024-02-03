@@ -1,7 +1,7 @@
-const pool = require('../src/connection');
+const pool = require('../connection');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const privateKey = require('../src/privateKey')
+const privateKey = require('../privateKey')
 
 const cadastrarUsuario = async (req, res) => {
     const { nome, email, senha } = req.body;

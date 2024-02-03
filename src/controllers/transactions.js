@@ -1,4 +1,4 @@
-const pool = require('../src/connection');
+const pool = require('../connection');
 
 const listarCategorias = async (req, res) => {
 

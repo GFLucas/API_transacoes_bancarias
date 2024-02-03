@@ -1,7 +1,6 @@
-const pool = require('../src/connection');
-const bcrypt = require('bcrypt');
+const pool = require('../connection');
 const jwt = require('jsonwebtoken');
-const privateKey = require('../src/privateKey')
+const privateKey = require('../privateKey')
 
 
 const usuarioLogado = async (req, res, next) => {

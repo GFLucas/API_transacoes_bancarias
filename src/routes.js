@@ -1,7 +1,7 @@
 const express = require('express');
-const { cadastrarUsuario, login, detalharUsuario, atualizarUsuario } = require('../controllers/users')
-const { listarCategorias } = require('../controllers/transactions');
-const usuarioLogado = require('../middlewares/autentication');
+const { cadastrarUsuario, login, detalharUsuario, atualizarUsuario } = require('./controllers/users')
+const { listarCategorias } = require('./controllers/transactions');
+const usuarioLogado = require('./middlewares/autentication');
 
 const route = express();
 
