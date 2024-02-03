@@ -46,8 +46,6 @@ const login = async (req, res) => {
         const senhaValida = await bcrypt.compare(senha, usuario.rows[0].senha);
 
         if (!senhaValida) {
-            console.log('aqui')
-
             return res.status(400).json({ Mensagem: 'Usuário e/ou senha inválido(s).' });
         };
 
