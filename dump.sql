@@ -15,7 +15,7 @@ CREATE TABLE usuarios(
     descricao text NOT NULL,
     valor integer NOT NULL,
     data date NOT NULL,
-    catedoria_id integer references categorias(id) NOT NULL,
+    categoria_id integer references categorias(id) NOT NULL,
     usuario_id integer references usuarios(id) NOT NULL,
     tipo text NOT NULL);
     
