@@ -1,6 +1,6 @@
 const express = require('express');
-const { cadastrarUsuario, login, detalharUsuario, atualizarUsuario, listarTransacoes, detalharTransacoes, atualizarTransacao, cadastrarTransacao, deletarTransacao, obterExtrato, transacoesFiltEntrada, transacoesFiltSaida } = require('./controllers/users')
-const { listarCategorias } = require('./controllers/transactions');
+const { cadastrarUsuario, login, detalharUsuario, atualizarUsuario } = require('./controllers/users')
+const { listarCategorias, listarTransacoes, detalharTransacoes, atualizarTransacao, cadastrarTransacao, deletarTransacao, obterExtrato, transacoesFiltEntrada, transacoesFiltSaida } = require('./controllers/operations');
 const usuarioLogado = require('./middlewares/autentication');
 
 const route = express();
@@ -20,7 +20,7 @@ route.post('/transacao', cadastrarTransacao)
 route.put('/transacao/:id', atualizarTransacao)
 route.delete('transacao/:id', deletarTransacao)
 route.get('/transacao/extrato', obterExtrato)
-route.get('transacao/entrada',transacoesFiltEntrada)
+route.get('transacao/entrada', transacoesFiltEntrada)
 route.get('transacao/saida', transacoesFiltSaida)
 
 
