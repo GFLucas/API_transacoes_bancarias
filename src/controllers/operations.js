@@ -15,21 +15,52 @@ const listarCategorias = async (req, res) => {
         return res.status(200).json(rows);
 
     } catch (error) {
-        console.log(erroDesconhecido)
+        console.log(error);
+        return res.status(500).json({ mensagem: 'Erro no servidor!!!' });
     }
-}
+};
 
 const listarTransacoes = async (req, res) => {
-    const { id } = req.usuario
+    const { id } = req.usuario;
 
     try {
-        const { rows } = await pool.query(`SELECT * FROM usuarios join transacoes on $1 = usuario_id `, [id])
-        return res.status(200).json(rows)
+        const lista = await pool.query(`
+            SELECT DISTINCT
+                t.id,
+                t.tipo,
+                t.descricao,
+                t.valor,
+                t.data,
+                t.usuario_id,
+                t.categoria_id,
+                c.descricao as categoria_nome
+            FROM
+                usuarios u
+                JOIN transacoes t ON u.id = t.usuario_id
+                JOIN categorias c ON t.categoria_id = c.id
+            WHERE
+                u.id = $1
+        `, [id]);
 
+        if (lista.rows.length === 0) {
+            return res.status(404).json({ mensagem: 'Nenhuma transação encontrada para o usuário.' });
+        }
+
+        const transacoes = lista.rows.map(row => ({
+            id: row.transacao_id,
+            tipo: row.tipo,
+            descricao: row.descricao,
+            valor: row.valor,
+            data: row.data,
+            usuario_id: row.usuario_id,
+            categoria_id: row.categoria_id,
+            categoria_nome: row.categoria_nome,
+        }));
+
+        return res.status(200).json(transacoes);
     } catch (error) {
-        console.log(error)
-        return res.status(500).json({ Menssagem: 'Erro no servidor!!!' })
-
+        console.log(error);
+        return res.status(500).json({ mensagem: 'Erro no servidor!!!' });
     }
 };
 
@@ -66,14 +97,15 @@ const cadastrarTransacao = async (req, res) => {
             descricao: transacao.descricao,
             valor: transacao.valor,
             data: transacao.data,
-            usuario_id: req.usuario.id,
+            usuario_id: id,
             categoria_id: transacao.id,
             categoria_nome: nomeCategoria.rows[0].descricao,
         };
 
         return res.status(201).json(cadastro)
     } catch (error) {
-        console.log(error)
+        console.log(error);
+        return res.status(500).json({ mensagem: 'Erro no servidor!!!' });
     }
 };
 
@@ -86,8 +118,8 @@ const detalharTransacoes = async (req, res) => {
             `SELECT t.id, t.tipo, t.descricao, t.valor, t.data, t.usuario_id, t.categoria_id, c.descricao as categoria_nome
             FROM transacoes t
             INNER JOIN categorias c ON t.categoria_id = c.id
-            WHERE t.id = $1 AND t.usuario_id = $2`,
-            [id, usuarioId]
+            WHERE t.usuario_id = $1 LIMIT 1 OFFSET $2-1`,
+            [usuarioId, id]
         );
 
         const transacoes = transacao.rows[0]
@@ -95,13 +127,16 @@ const detalharTransacoes = async (req, res) => {
         if (!transacoes) {
             return res.status(404).json({ Mensagem: "Transação não encontrada." })
         };
-        
+
         return res.status(201).json(transacoes)
 
     } catch (error) {
-        console.log(error)
+        console.log(error);
+        return res.status(500).json({ mensagem: 'Erro no servidor!!!' });
     }
 };
+
+
 
 
 const atualizarTransacao = async (req, res) => {
