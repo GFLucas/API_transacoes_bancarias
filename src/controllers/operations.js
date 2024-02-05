@@ -1,12 +1,15 @@
 const pool = require('../connection');
 
+const problemaLogin = () =>{
+return res.status(500).json({ Mensagem: 'Erro no servidor!!!' })
+}
 const erroDesconhecido = () => {
     console.log(error)
     return res.status(500).json({ Mensagem: 'Erro no servidor!!!' })
 };
 
 const listarCategorias = async (req, res) => {
-    const { id } = req.usuario
+    const { id: usuarioId } = req.usuario;
     console.log(id)
 
     try {
@@ -21,9 +24,12 @@ const listarCategorias = async (req, res) => {
 };
 
 const listarTransacoes = async (req, res) => {
-    const { id } = req.usuario;
+    const { id: usuarioId } = req.usuario;
 
     try {
+        if (usuarioId < 1){
+            problemaLogin()
+        }
         const lista = await pool.query(`
             SELECT DISTINCT
                 t.id,
@@ -40,7 +46,7 @@ const listarTransacoes = async (req, res) => {
                 JOIN categorias c ON t.categoria_id = c.id
             WHERE
                 u.id = $1
-        `, [id]);
+        `, [usuarioId]);
 
         if (lista.rows.length === 0) {
             return res.status(404).json({ mensagem: 'Nenhuma transação encontrada para o usuário.' });
@@ -65,10 +71,13 @@ const listarTransacoes = async (req, res) => {
 };
 
 const cadastrarTransacao = async (req, res) => {
-    const { id } = req.usuario
+    const { id: usuarioId } = req.usuario;    
     const { descricao, valor, data, categoria_id, tipo } = req.body
 
     try {
+        if (usuarioId < 1){
+            problemaLogin()
+        }
         if (!descricao || !valor || !data || !categoria_id || !tipo) {
             return res.status(400).json({ mensagem: 'Todos os campos devem ser informados' })
         }
@@ -79,7 +88,7 @@ const cadastrarTransacao = async (req, res) => {
         const novaTransacao = await pool.query(`INSERT INTO transacoes (descricao, valor, data, categoria_id, tipo, usuario_id) 
         VALUES 
         ($1, $2, $3, $4, $5, $6) returning *`,
-            [descricao, valor, data, categoria_id, tipoLowerCase, id]
+            [descricao, valor, data, categoria_id, tipoLowerCase, usuarioId]
         );
 
         const transacao = novaTransacao.rows[0]
@@ -97,7 +106,7 @@ const cadastrarTransacao = async (req, res) => {
             descricao: transacao.descricao,
             valor: transacao.valor,
             data: transacao.data,
-            usuario_id: id,
+            usuario_id: usuarioId,
             categoria_id: transacao.id,
             categoria_nome: nomeCategoria.rows[0].descricao,
         };
@@ -114,6 +123,9 @@ const detalharTransacoes = async (req, res) => {
     const { id: usuarioId } = req.usuario;
 
     try {
+        if (usuarioId < 1){
+            problemaLogin()
+        }
         const transacao = await pool.query(
             `SELECT t.id, t.tipo, t.descricao, t.valor, t.data, t.usuario_id, t.categoria_id, c.descricao as categoria_nome
             FROM transacoes t
@@ -141,9 +153,14 @@ const detalharTransacoes = async (req, res) => {
 
 const atualizarTransacao = async (req, res) => {
     const { id } = req.params
+    const { id: usuarioId } = req.usuario;
     const { descricao, valor, data, categoria_id, tipo } = req.body
     const tipoLowerCase = tipo.tipoLowerCase()
     try {
+        if (usuarioId < 1){
+            problemaLogin()
+        }
+        
         if (id < 0) {
             res.status(400).json({ mensagem: " Id invalido" })
         }
@@ -153,7 +170,7 @@ const atualizarTransacao = async (req, res) => {
         if (tipo !== "entrada" && tipo !== "saida") {
             return res.status(400).json({ mensagem: "Tipo invalido !" })
         }
-        const transacaoSolicitada = await pool.query(`SELECT $1 FROM transacoes join usuarios on usuario_id = $2`, [id, idUsuario])
+        const transacaoSolicitada = await pool.query(`SELECT $1 FROM transacoes join usuarios on usuario_id = $2`, [id, usuarioId])
         if (transacaoSolicitada < 0) {
             return res.status(400).json({ mensagem: "Transação invalida" })
         }
@@ -171,11 +188,15 @@ const atualizarTransacao = async (req, res) => {
 }
 const deletarTransacao = async (req, res) => {
     const { id } = id.params
+    const { id: usuarioId } = req.usuario;
     try {
+        if (usuarioId < 1){
+            problemaLogin()
+        }
         if (id < 0) {
             return res.status(400).json({ mensagem: "Id de transação invalido !" })
         }
-        const procurarTransacao = await pool.query(`SELECT * FROM transacoes where id = $1 and usuario_id = $2`, [id, idUsuario])
+        const procurarTransacao = await pool.query(`SELECT * FROM transacoes where id = $1 and usuario_id = $2`, [id, usuarioId])
         if (procurarTransacao < 0) {
             return res.status(400).json({ mensagem: "Transação inexistente ou não encontrada" })
         }
@@ -186,18 +207,26 @@ const deletarTransacao = async (req, res) => {
     }
 }
 const obterExtrato = async (req, res) => {
+    const { id: usuarioId } = req.usuario;
     try {
-        const somaEntrada = await pool.query(`SELECT SUM(valor) FROM transacoes WHERE tipo = "entrada" and usuario_id = $1`[idUsuario])
-        const somaSaida = await pool.query(`SELECT SUM(valor) FROM transacoes WHERE tipo = "saida" and usuario_id = $1`[idUsuario])
+        if (usuarioId < 1){
+            problemaLogin()
+        }
+        const somaEntrada = await pool.query(`SELECT SUM(valor) FROM transacoes WHERE tipo = "entrada" and usuario_id = $1`[usuarioId])
+        const somaSaida = await pool.query(`SELECT SUM(valor) FROM transacoes WHERE tipo = "saida" and usuario_id = $1`[usuarioId])
         return res.status(200).json({ Entrada: somaEntrada, saida: somaSaida })
     } catch (error) {
         console.log(error)
     }
 }
 const transacoesFiltEntrada = async (req, res) => {
+    const { id: usuarioId } = req.usuario;
 
     try {
-        const transacoesEntrada = await pool.query(`SELECT * FROM transacoes WHERE usuario_id = $1 AND tipo = "entrada"`, [idUsuario])
+        if (usuarioId < 1){
+            problemaLogin()
+        }
+        const transacoesEntrada = await pool.query(`SELECT * FROM transacoes WHERE usuario_id = $1 AND tipo = "entrada"`, [usuarioId])
         return res.status(200).json({ transacoesEntrada })
 
     } catch (error) {
@@ -205,9 +234,13 @@ const transacoesFiltEntrada = async (req, res) => {
     }
 }
 const transacoesFiltSaida = async (req, res) => {
+    const { id: usuarioId } = req.usuario;
 
     try {
-        const transacoesSaida = await pool.query(`SELECT * FROM transacoes WHERE usuario_id = $1 AND tipo = "saida"`, [idUsuario])
+        if (usuarioId < 1){
+            problemaLogin()
+        }
+        const transacoesSaida = await pool.query(`SELECT * FROM transacoes WHERE usuario_id = $1 AND tipo = "saida"`, [usuarioId])
         return res.status(200).json({ transacoesSaida })
 
     } catch (error) {
