@@ -10,7 +10,6 @@ const erroDesconhecido = () => {
 
 const listarCategorias = async (req, res) => {
     const { id: usuarioId } = req.usuario;
-    console.log(id)
 
     try {
         const { rows } = await pool.query(`SELECT * FROM categorias`)
@@ -140,7 +139,7 @@ const detalharTransacoes = async (req, res) => {
             return res.status(404).json({ Mensagem: "Transação não encontrada." })
         };
 
-        return res.status(201).json(transacoes)
+        return res.status(200).json(transacoes)
 
     } catch (error) {
         console.log(error);
@@ -201,7 +200,7 @@ const deletarTransacao = async (req, res) => {
             return res.status(400).json({ mensagem: "Transação inexistente ou não encontrada" })
         }
         const deletar = await pool.query(`DELETE FROM transacoes where id = $1`, [id])
-        return res.status(201).json()
+        return res.status(200).json()
     } catch (error) {
         console.log(error)
     }
@@ -219,35 +218,78 @@ const obterExtrato = async (req, res) => {
         console.log(error)
     }
 }
-const transacoesFiltEntrada = async (req, res) => {
+const transacoesFilt = async (req, res) => {
     const { id: usuarioId } = req.usuario;
-
+    const filtroCategorias = req.query.filtro;
     try {
-        if (usuarioId < 1){
-            problemaLogin()
+        if (!filtroCategorias) {
+            const lista = await pool.query(`
+                SELECT DISTINCT
+                    t.id,
+                    t.tipo,
+                    t.descricao,
+                    t.valor,
+                    t.data,
+                    t.usuario_id,
+                    t.categoria_id,
+                    c.descricao as categoria_nome
+                FROM
+                    usuarios u
+                    JOIN transacoes t ON u.id = t.usuario_id
+                    JOIN categorias c ON t.categoria_id = c.id
+                WHERE
+                    u.id = $1
+            `, [usuarioId]);
+
+            const transacoes = lista.rows.map(row => ({
+                id: row.id,
+                tipo: row.tipo,
+                descricao: row.descricao,
+                valor: row.valor,
+                data: row.data,
+                usuario_id: row.usuario_id,
+                categoria_id: row.categoria_id,
+                categoria_nome: row.categoria_nome,
+            }));
+
+            return res.status(200).json(transacoes);
+        } else {
+            const lista = await pool.query(`
+                SELECT DISTINCT
+                    t.id,
+                    t.tipo,
+                    t.descricao,
+                    t.valor,
+                    t.data,
+                    t.usuario_id,
+                    t.categoria_id,
+                    c.descricao as categoria_nome
+                FROM
+                    usuarios u
+                    JOIN transacoes t ON u.id = t.usuario_id
+                    JOIN categorias c ON t.categoria_id = c.id
+                WHERE
+                    u.id = $1
+                    AND c.descricao IN ($2)
+            `, [usuarioId, filtroCategorias]);
+
+            const transacoes = lista.rows.map(row => ({
+                id: row.id,
+                tipo: row.tipo,
+                descricao: row.descricao,
+                valor: row.valor,
+                data: row.data,
+                usuario_id: row.usuario_id,
+                categoria_id: row.categoria_id,
+                categoria_nome: row.categoria_nome,
+            }));
+
+            return res.status(200).json(transacoes);
         }
-        const transacoesEntrada = await pool.query(`SELECT * FROM transacoes WHERE usuario_id = $1 AND tipo = "entrada"`, [usuarioId])
-        return res.status(200).json({ transacoesEntrada })
-
     } catch (error) {
-        console.log(error)
+        erroDesconhecido()
     }
-}
-const transacoesFiltSaida = async (req, res) => {
-    const { id: usuarioId } = req.usuario;
-
-    try {
-        if (usuarioId < 1){
-            problemaLogin()
-        }
-        const transacoesSaida = await pool.query(`SELECT * FROM transacoes WHERE usuario_id = $1 AND tipo = "saida"`, [usuarioId])
-        return res.status(200).json({ transacoesSaida })
-
-    } catch (error) {
-        console.log(error)
-    }
-
-}
+};
 
 module.exports = {
     listarCategorias,
@@ -257,6 +299,5 @@ module.exports = {
     atualizarTransacao,
     deletarTransacao,
     obterExtrato,
-    transacoesFiltEntrada,
-    transacoesFiltSaida
+    transacoesFilt
 }
