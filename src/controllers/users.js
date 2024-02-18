@@ -29,7 +29,7 @@ const cadastrarUsuario = async (req, res) => {
         return res.status(201).json(usuarioCadastrado);
 
     } catch (error) {
-        return res.status(500).json({ Mensagem: 'Erro no servidor!!!' })
+        console.log(error)
     }
 };
 
@@ -50,28 +50,29 @@ const login = async (req, res) => {
         };
 
         const token = jwt.sign({ id: usuario.rows[0].id }, privateKey, { expiresIn: '8h' });
+        const idUsuario = usuario.rows[0].id
 
         const { senha: _, ...usuarioLogado } = usuario.rows[0]
 
-        return res.status(200).json({ usuario: usuarioLogado, token });
+        return res.status(200).json({ usuario: usuarioLogado, token, idUsuario });
 
     } catch (error) {
         console.log(error)
-        return res.status(500).json({ Mensagem: 'Erro no servidor!!!' })
     };
 
 };
 
 const detalharUsuario = async (req, res) => {
-    const { id } = req.params;
+    const { id: usuarioId } = req.usuario;
+
 
     try {
         const usuario = await pool.query(`SELECT * FROM usuarios WHERE id = $1`,
-            [id]
+            [usuarioId]
         );
 
         if (usuario.rows.length === 0) {
-            return res.status(404).json({ mensagem: 'Usuário não cadastrado.'});
+            return res.status(404).json({ mensagem: 'Usuário não cadastrado.' });
         }
 
         const perfil = {
@@ -84,34 +85,40 @@ const detalharUsuario = async (req, res) => {
 
     } catch (error) {
         console.log(error)
-        return res.status(500).json({ Mensagem: 'Erro no servidor!!!' })
     };
 };
 
 const atualizarUsuario = async (req, res) => {
-    const { id } = req.params;
+    const { id: usuarioId } = req.usuario;
     const { nome, email, senha } = req.body;
 
     try {
+
+        const verificarUsuario = await pool.query(`SELECT * FROM usuarios WHERE id = $1`,
+            [usuarioId]
+        );
+
+        if (verificarUsuario.rowCount < 1) {
+            return res.status(404).json({ mensagem: 'Usuário não cadastrado.' });
+        }
+
         const verificarEmail = await pool.query(`SELECT * FROM usuarios WHERE email = $1`,
             [email]
         );
 
-        if (verificarEmail.rowCount > 0) {
+        if (verificarEmail.rowCount > 0 && verificarEmail.rows[0].email !== email) {
             return res.status(400).json({ Mensagem: 'Já existe usuário cadastrado com o e-mail informado.' });
         };
 
         const usuario = await pool.query(`UPDATE usuarios SET nome = $1, email = $2, senha = $3 WHERE id = $4`,
-            [nome, email, senha, id]
+            [nome, email, senha, usuarioId]
         );
         return res.status(204).json([])
 
     } catch (error) {
         console.log(error)
-        return res.status(500).json({ Mensagem: 'Erro no servidor!!!' })
     };
 };
-
 
 module.exports = {
     cadastrarUsuario,
